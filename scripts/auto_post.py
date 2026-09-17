@@ -45,10 +45,22 @@ Write 400-600 words. Include a short intro, a summary of the top 3, and a brief 
 thought about championship implications. Do not use markdown headers. Return plain
 paragraphs only."""
 
+    import time
     body = {"contents": [{"parts": [{"text": prompt}]}]}
-    resp = requests.post(GEMINI_URL, json=body)
-    resp.raise_for_status()
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        resp = requests.post(GEMINI_URL, json=body)
+        if resp.status_code == 503 and attempt < max_retries - 1:
+            wait = 10 * (attempt + 1)
+            print(f"Gemini overloaded (503), retrying in {wait}s...")
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        break
+
     result = resp.json()
+  
     text = result["candidates"][0]["content"]["parts"][0]["text"]
     return text, race_name
 
